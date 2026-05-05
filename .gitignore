@@ -1,0 +1,25 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Generated data — large, reproducible via the pipeline scripts
+data/
+
+# Trained model artefacts — large, reproducible via train_probe.py
+models/
+
+# uv lock file — pin for reproducibility; keep in repo
+# uv.lock
+
+# Original paper PDF — removed from tracking; link in README instead
+2604.28129v1.pdf
+
+# OS noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,43 @@
+[project]
+name = "lad"
+version = "0.1.0"
+description = "Latent Adversarial Detection — reproduction of arXiv:2604.28129v1"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    # GPU / model loading
+    "torch>=2.5.1",
+    "torchvision",
+    "torchaudio",
+    "transformers>=4.40",
+    "accelerate",           # required for device_map= in transformers
+    # Probe training & evaluation
+    "xgboost>=2.0",
+    "scikit-learn",
+    "numpy",
+    # Dataset ingestion & generation
+    "datasets",
+    "openai",               # generate_synthetic.py + ingest_lmsys.py + ingest_safedial.py
+    # Utilities
+    "huggingface-hub",
+    "tokenizers",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+# uv sync --extra quantize  — 4-bit loading for llama3b/gemma2b/phi3.5 on 4 GB GPU
+quantize = ["bitsandbytes"]
+# uv sync --extra label-val  — eval_label_validation.py judges
+label-val = ["anthropic", "google-generativeai"]
+# uv sync --extra vllm  — large-scale synthetic generation (Linux / WSL2 only)
+vllm = ["vllm"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
+torchvision = { index = "pytorch-cu124" }
+torchaudio = { index = "pytorch-cu124" }
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
