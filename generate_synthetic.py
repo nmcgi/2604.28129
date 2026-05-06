@@ -14,7 +14,7 @@ Extended-pivoting mode (--extended):
 Each JSON: {"messages": [...], "category": "...", "split": "..."}
 Each message: {"role": "user|assistant", "content": "...", "label": "benign|pivoting|adversarial"}
 """
-import json, os, random, argparse
+import json, os, random, argparse, time
 from openai import OpenAI, APITimeoutError   # vLLM and LM Studio are both OpenAI-API-compatible
 
 # client is configured after arg parsing (base_url and model come from CLI flags)
@@ -80,7 +80,9 @@ def generate(system: str, user_prompt: str, client, gen_model: str, retries: int
         except (json.JSONDecodeError, KeyError, IndexError, ValueError, APITimeoutError) as e:
             if attempt == retries - 1:
                 raise
-            print(f"  [retry {attempt + 1}/{retries}] error: {e}")
+            wait = 15 * (attempt + 1)
+            print(f"  [retry {attempt + 1}/{retries}] error: {e} — waiting {wait}s")
+            time.sleep(wait)
 
 def make_attack_prompt(cat: str, desc: str, domain: str, n_turns: tuple) -> str:
     lo, hi = n_turns
@@ -130,9 +132,11 @@ if __name__ == "__main__":
     ap.add_argument("--gen-model", default="Qwen/Qwen3-235B-A22B",
                     help="Model name as the server expects it. "
                          "For LM Studio use the exact model name shown in the UI.")
+    ap.add_argument("--timeout",   type=float, default=600.0,
+                    help="Per-request timeout in seconds (default: 600)")
     args = ap.parse_args()
 
-    client = OpenAI(base_url=args.base_url, api_key="none", timeout=300.0)
+    client = OpenAI(base_url=args.base_url, api_key="none", timeout=args.timeout)
 
     random.seed(args.seed)
 

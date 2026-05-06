@@ -44,7 +44,11 @@ Download models to an NVMe volume attached to your cloud instance to avoid re-do
 - HuggingFace account with **approved access** to:
   - [`google/gemma-3-27b-it`](https://huggingface.co/google/gemma-3-27b-it)
   - [`meta-llama/Llama-3.1-70B-Instruct`](https://huggingface.co/meta-llama/Llama-3.1-70B-Instruct)
+  - [`meta-llama/Llama-3.2-1B-Instruct`](https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct) *(low-resource path)*
+  - [`meta-llama/Llama-3.2-3B-Instruct`](https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct) *(low-resource path)*
+  - [`google/gemma-2-2b-it`](https://huggingface.co/google/gemma-2-2b-it) *(low-resource path)*
 - `HF_TOKEN` environment variable set to your token
+- `OPENAI_API_KEY` environment variable set to your key (required for three-phase labeling in Phase 3)
 
 ## Phase 1 — Environment Setup
 
@@ -53,6 +57,7 @@ git clone https://github.com/nmcgi/2604.28129.git
 cd 2604.28129
 
 uv sync --extra vllm
+uv sync --extra quantize   # needed for low-resource 4-bit models
 source .venv/bin/activate
 
 mkdir -p data/synthetic/train data/synthetic/eval \
@@ -68,23 +73,23 @@ mkdir -p data/synthetic/train data/synthetic/eval \
 export HF_TOKEN="hf_..."
 
 # Gemma 3 27B instruction-tuned  (layer ℓ=32, d=5376)
-huggingface-cli download google/gemma-3-27b-it \
+uvx hf download google/gemma-3-27b-it \
   --local-dir ./models/gemma-3-27b-it --token $HF_TOKEN
 
 # Mistral Small 3.1 24B instruction-tuned  (layer ℓ=24, d=5120)
-huggingface-cli download mistralai/Mistral-Small-3.1-24B-Instruct-2503 \
+uvx hf download mistralai/Mistral-Small-3.1-24B-Instruct-2503 \
   --local-dir ./models/mistral-24b-it --token $HF_TOKEN
 
 # Qwen 2.5 32B instruction-tuned  (layer ℓ=32, d=5120)
-huggingface-cli download Qwen/Qwen2.5-32B-Instruct \
+uvx hf download Qwen/Qwen2.5-32B-Instruct \
   --local-dir ./models/qwen-32b-it --token $HF_TOKEN
 
 # Llama 3.1 70B instruction-tuned  (layer ℓ=40, d=8192)
-huggingface-cli download meta-llama/Llama-3.1-70B-Instruct \
+uvx hf download meta-llama/Llama-3.1-70B-Instruct \
   --local-dir ./models/llama-70b-it --token $HF_TOKEN
 
 # Qwen3-235B-A22B — for synthetic dataset generation only (Phase 3)
-huggingface-cli download Qwen/Qwen3-235B-A22B \
+uvx hf download Qwen/Qwen3-235B-A22B \
   --local-dir ./models/qwen3-235b --token $HF_TOKEN
 ```
 
@@ -102,7 +107,7 @@ Model configuration (layer index and hidden dimension used during extraction):
 Start the vLLM server on 2×H200:
 
 ```bash
-vllm serve Qwen/Qwen3-235B-A22B \
+vllm serve ./models/qwen3-235b \
   --tensor-parallel-size 2 \
   --dtype bfloat16 \
   --max-model-len 8192 \
@@ -236,15 +241,36 @@ Detection performance will differ from the paper; the goal is to validate that t
 | `qwen1.5b` | 1.5 B | ~3 GB | ~1 GB | **Yes (bf16)** |
 | `llama1b`  | 1 B   | ~2 GB | ~0.7 GB | **Yes (bf16)** |
 | `llama3b`  | 3 B   | ~6 GB | ~2 GB | Yes (4-bit only) |
-| `gemma2b`  | 2 B   | ~4 GB | ~1.5 GB | Yes (4-bit only) |
+| `gemma2b`  | 2 B   | ~4.5 GB | ~1.5 GB | Yes (4-bit only) |
 | `phi3.5`   | 3.8 B | ~7.6 GB | ~2.5 GB | Yes (4-bit only) |
 
-Install 4-bit quantization support once (CPU-only wheels also work):
+### Step 1 — Model Download
+
 ```bash
-uv sync --extra quantize
+export HF_TOKEN="hf_..."
+
+# Qwen 2.5 1.5B instruction-tuned  (layer ℓ=24, d=1536)
+uvx hf download Qwen/Qwen2.5-1.5B-Instruct \
+  --local-dir ./models/qwen-1.5b-it --token $HF_TOKEN
+
+# Llama 3.2 1B instruction-tuned  (layer ℓ=16, d=2048)
+uvx hf download meta-llama/Llama-3.2-1B-Instruct \
+  --local-dir ./models/llama-1b-it --token $HF_TOKEN
+
+# Llama 3.2 3B instruction-tuned  (layer ℓ=28, d=3072)  — needs --quantize
+uvx hf download meta-llama/Llama-3.2-3B-Instruct \
+  --local-dir ./models/llama-3b-it --token $HF_TOKEN
+
+# Gemma 2 2B instruction-tuned  (layer ℓ=18, d=2304)  — needs --quantize
+uvx hf download google/gemma-2-2b-it \
+  --local-dir ./models/gemma-2b-it --token $HF_TOKEN
+
+# Phi-3.5 Mini instruction-tuned  (layer ℓ=32, d=3072)  — needs --quantize
+uvx hf download microsoft/Phi-3.5-mini-instruct \
+  --local-dir ./models/phi-3.5-mini --token $HF_TOKEN
 ```
 
-### Step 1 — Generate synthetic data via LM Studio
+### Step 2 — Generate synthetic data via LM Studio
 
 Load any instruction-tuned model in LM Studio (e.g. `Qwen 2.5 7B Q4`, `Llama 3.1 8B Q4`),
 enable the local server (default port 1234), then:
@@ -260,7 +286,7 @@ python generate_synthetic.py \
 > extraction still requires loading model weights locally via `transformers` — the
 > probe hooks directly into the model's layers, which an API cannot expose.
 
-### Step 2 — Extract activations (GPU, ~10–30 min)
+### Step 3 — Extract activations (GPU, ~10–30 min)
 
 ```bash
 # Fits without quantization (recommended for GTX 1650):
@@ -272,13 +298,13 @@ python extract_activations.py --model llama3b --quantize --source synthetic --sp
 python extract_activations.py --model llama3b --quantize --source synthetic --split eval
 ```
 
-### Step 3 — Train probe (CPU, ~2 min)
+### Step 4 — Train probe (CPU, ~2 min)
 
 ```bash
 python train_probe.py --model qwen1.5b
 ```
 
-### Step 4 — Evaluate and run demo
+### Step 5 — Evaluate and run demo
 
 ```bash
 python eval_probe.py --model qwen1.5b
