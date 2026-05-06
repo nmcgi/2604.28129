@@ -21,23 +21,21 @@ pass `--variant contrastive` to the training and inference scripts to use it.
 
 | Target model | Params | VRAM required | Minimum GPU |
 |---|---|---|---|
-| Gemma 3 27B-IT | 27B | ~55 GB | 1×H200 (141 GB) |
-| Mistral Small 3.1 24B | 24B | ~48 GB | 1×H200 (141 GB) |
-| Qwen 2.5 32B-IT | 32B | ~64 GB | 1×H200 (141 GB) |
+| Gemma 3 27B-IT | 27B | ~55 GB | 1×A100 80 GB |
+| Mistral Small 3.1 24B | 24B | ~48 GB | 1×A100 80 GB |
+| Qwen 2.5 32B-IT | 32B | ~64 GB | 1×A100 80 GB |
 | Llama 3.1 70B-IT | 70B | ~140 GB | **2×H100 80 GB** |
-| Qwen3-235B-A22B *(data gen only)* | 235B MoE | ~480 GB | **2×H200** |
+| Qwen3-235B-A22B *(data gen only)* | 235B MoE | ~240 GB (fp8) | **2×H200** |
 
 Probe training and all evaluation run on **CPU only** once activations are cached.
-The paper used [RunPod](https://runpod.io) H200 SXM pods. A single H200 pod covers
-Gemma/Mistral/Qwen extraction; rent a 2×H100 pod for Llama; rent a 2×H200 pod for
-synthetic data generation. Storage budget: ~70 GB per 27–32B model, ~140 GB for Llama 70B.
+The paper used [RunPod](https://runpod.io) H200 SXM pods. An A100 80 GB or H200 pod covers Gemma/Mistral/Qwen extraction; rent a 2×H100 pod for Llama; rent a 2×H200 pod for synthetic data generation. Storage budget: ~70 GB per 27–32B model, ~140 GB for Llama 70B.
 Download models to an NVMe volume attached to your cloud instance to avoid re-downloading.
 
 ### Software
 
 - Python 3.10+
 - CUDA 12.x + PyTorch 2.5+
-- Ubuntu 22.04+ (or WSL2)
+- [uv](https://docs.astral.sh/uv/)
 
 ### Accounts
 
@@ -50,15 +48,42 @@ Download models to an NVMe volume attached to your cloud instance to avoid re-do
 - `HF_TOKEN` environment variable set to your token
 - `OPENAI_API_KEY` environment variable set to your key (required for three-phase labeling in Phase 3)
 
+## Quick Start — Smoke Test (no H100 required)
+
+Complete [Phase 1](#phase-1--environment-setup) to set up the environment and directory layout before running these commands.
+
+Run the standard variant on Qwen 2.5 32B with 50 conversations. Requires only
+~64 GB VRAM (fits on an A100 80 GB pod) and takes ~30 minutes end-to-end.
+
+```bash
+# 1. Generate 50 conversations via Anthropic/OpenAI API (no local Qwen3-235B needed)
+#    Configure the client in generate_synthetic.py before running.
+python generate_synthetic.py --n-train 40 --n-eval 10
+
+# 2. Extract activations — Qwen 32B on A100 80 GB
+python extract_activations.py --model qwen --source synthetic --split train
+python extract_activations.py --model qwen --source synthetic --split eval
+
+# 3. Train probe — standard variant (raw activations + 5 scalars, no contrastive encoder)
+python train_probe.py --model qwen
+
+# 4. Evaluate
+python eval_probe.py --model qwen
+```
+
+Expected on 50-conversation smoke test: ~89% detection rate but high FPR (~57–74%)
+due to limited training data. With the full dataset (2,625 conversations) and
+`--variant contrastive`, FPR drops to 2–4% while detection stays at 85–89% (paper
+Sections 6–7). The scalar-only ablation (Section 5) also achieves ~89.6% detection
+but retains the high 57–74% FPR regardless of dataset size.
+
 ## Phase 1 — Environment Setup
 
 ```bash
 git clone https://github.com/nmcgi/2604.28129.git
 cd 2604.28129
 
-uv sync --extra vllm
-uv sync --extra quantize   # needed for low-resource 4-bit models
-source .venv/bin/activate
+uv sync --extra vllm --extra quantize
 
 mkdir -p data/synthetic/train data/synthetic/eval \
          data/lmsys/train data/lmsys/eval \
@@ -109,7 +134,7 @@ Start the vLLM server on 2×H200:
 ```bash
 vllm serve ./models/qwen3-235b \
   --tensor-parallel-size 2 \
-  --dtype bfloat16 \
+  --quantization fp8 \
   --max-model-len 8192 \
   --port 8000
 ```
@@ -202,32 +227,6 @@ python lad_infer.py --model qwen
 Expected: turns 1–6 show P(adv) < 0.5; turn 9+ ("avoid triggering detection mechanisms")
 exceeds θ=0.5 and prints `*** FLAGGED ***`. Latency ~100 ms/turn.
 
-## Quick Start — Smoke Test (no H100 required)
-
-Run the standard variant on Qwen 2.5 32B with 50 conversations. Requires only
-~64 GB VRAM (fits on an A100 80 GB pod) and takes ~30 minutes end-to-end.
-
-```bash
-# 1. Generate 50 conversations via Anthropic/OpenAI API (no local Qwen3-235B needed)
-#    Configure the client in generate_synthetic.py before running.
-python generate_synthetic.py --n-train 40 --n-eval 10
-
-# 2. Extract activations — Qwen 32B on A100 80 GB
-python extract_activations.py --model qwen --source synthetic --split train
-python extract_activations.py --model qwen --source synthetic --split eval
-
-# 3. Train probe — standard variant (raw activations + 5 scalars, no contrastive encoder)
-python train_probe.py --model qwen
-
-# 4. Evaluate
-python eval_probe.py --model qwen
-```
-
-Expected on 50-conversation smoke test: ~89% detection (the paper's scalars-only
-baseline achieves 89.6%, Section 5; the standard variant matches or exceeds this),
-at higher FP (~57–74%) with only 50 training conversations and no contrastive encoder.
-Add `--variant contrastive` and more data to bring FP down to 2–4%.
-
 ## Low-Resource Path — GTX 1650 (4 GB VRAM)
 
 This path runs the full pipeline on consumer hardware using small models.
@@ -236,36 +235,36 @@ Detection performance will differ from the paper; the goal is to validate that t
 
 ### Hardware fit
 
-| Model key | Params | VRAM (bf16) | VRAM (4-bit) | Fits GTX 1650? |
-|---|---|---|---|---|
-| `qwen1.5b` | 1.5 B | ~3 GB | ~1 GB | **Yes (bf16)** |
-| `llama1b`  | 1 B   | ~2 GB | ~0.7 GB | **Yes (bf16)** |
-| `llama3b`  | 3 B   | ~6 GB | ~2 GB | Yes (4-bit only) |
-| `gemma2b`  | 2 B   | ~4.5 GB | ~1.5 GB | Yes (4-bit only) |
-| `phi3.5`   | 3.8 B | ~7.6 GB | ~2.5 GB | Yes (4-bit only) |
+| Model key | Params | VRAM (bf16) | VRAM (4-bit) | Fits GTX 1650? | Gated? |
+|---|---|---|---|---|---|
+| `qwen1.5b` | 1.5 B | ~3 GB | ~1 GB | **Yes (bf16)** | No |
+| `llama1b`  | 1 B   | ~2 GB | ~0.7 GB | **Yes (bf16)** | **Yes** |
+| `llama3b`  | 3 B   | ~6 GB | ~2 GB | Yes (4-bit only) | **Yes** |
+| `gemma2b`  | 2 B   | ~4.5 GB | ~1.5 GB | Yes (4-bit only) | **Yes** |
+| `phi3.5`   | 3.8 B | ~7.6 GB | ~2.5 GB | Yes (4-bit only) | No |
 
 ### Step 1 — Model Download
 
 ```bash
 export HF_TOKEN="hf_..."
 
-# Qwen 2.5 1.5B instruction-tuned  (layer ℓ=24, d=1536)
+# Qwen 2.5 1.5B instruction-tuned  (layer ℓ=14, d=1536)
 uvx hf download Qwen/Qwen2.5-1.5B-Instruct \
   --local-dir ./models/qwen-1.5b-it --token $HF_TOKEN
 
-# Llama 3.2 1B instruction-tuned  (layer ℓ=16, d=2048)
+# Llama 3.2 1B instruction-tuned  (layer ℓ=8, d=2048)
 uvx hf download meta-llama/Llama-3.2-1B-Instruct \
   --local-dir ./models/llama-1b-it --token $HF_TOKEN
 
-# Llama 3.2 3B instruction-tuned  (layer ℓ=28, d=3072)  — needs --quantize
+# Llama 3.2 3B instruction-tuned  (layer ℓ=14, d=3072)  — needs --quantize
 uvx hf download meta-llama/Llama-3.2-3B-Instruct \
   --local-dir ./models/llama-3b-it --token $HF_TOKEN
 
-# Gemma 2 2B instruction-tuned  (layer ℓ=18, d=2304)  — needs --quantize
+# Gemma 2 2B instruction-tuned  (layer ℓ=13, d=2304)  — needs --quantize
 uvx hf download google/gemma-2-2b-it \
   --local-dir ./models/gemma-2b-it --token $HF_TOKEN
 
-# Phi-3.5 Mini instruction-tuned  (layer ℓ=32, d=3072)  — needs --quantize
+# Phi-3.5 Mini instruction-tuned  (layer ℓ=16, d=3072)  — needs --quantize
 uvx hf download microsoft/Phi-3.5-mini-instruct \
   --local-dir ./models/phi-3.5-mini --token $HF_TOKEN
 ```

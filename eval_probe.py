@@ -31,7 +31,8 @@ def early_detection_rate(y, conv_ids, probs):
 
     A conversation qualifies if it contains at least one turn with label=2 (adversarial)
     and at least one preceding turn. Early detection occurs when any turn strictly before
-    the first adversarial turn exceeds θ. Paper target: 66–83% (Section 5 / Figure 5).
+    the first adversarial turn exceeds θ. Paper reports ~22–26% on the standard combined
+    eval (Section 5) and 66–83% on the extended-pivoting dataset (Figure 5).
     """
     unique_ids = np.unique(conv_ids)
     total, early = 0, 0
@@ -163,7 +164,7 @@ def eval_probe(model_name, variant="standard"):
 
     early_rate, n_adv_conv = early_detection_rate(y_eval, conv_ids, probs_all)
     print(f"  {'[early detect]':>19s}  {early_rate:5.1f}% of {n_adv_conv} adv convs flagged"
-          f" before first adversarial turn  (paper: 66–83%)")
+          f" before first adversarial turn  (paper: ~22–26% on standard eval; 66–83% on extended-pivoting data)")
 
     # --- Early detection stratified by pivoting-phase length (Figure 5) ---
     rows = early_detection_by_pivot_length(y_eval, conv_ids, probs_all)
