@@ -58,17 +58,17 @@ Run the standard variant on Qwen 2.5 32B with 50 conversations. Requires only
 ```bash
 # 1. Generate 50 conversations via Anthropic/OpenAI API (no local Qwen3-235B needed)
 #    Configure the client in generate_synthetic.py before running.
-python generate_synthetic.py --n-train 40 --n-eval 10
+uv run generate_synthetic.py --n-train 40 --n-eval 10
 
 # 2. Extract activations — Qwen 32B on A100 80 GB
-python extract_activations.py --model qwen --source synthetic --split train
-python extract_activations.py --model qwen --source synthetic --split eval
+uv run extract_activations.py --model qwen --source synthetic --split train
+uv run extract_activations.py --model qwen --source synthetic --split eval
 
 # 3. Train probe — standard variant (raw activations + 5 scalars, no contrastive encoder)
-python train_probe.py --model qwen
+uv run train_probe.py --model qwen
 
 # 4. Evaluate
-python eval_probe.py --model qwen
+uv run eval_probe.py --model qwen
 ```
 
 Expected on 50-conversation smoke test: ~89% detection rate but high FPR (~57–74%)
@@ -142,7 +142,7 @@ vllm serve ./models/qwen3-235b \
 In a second terminal, run generation:
 
 ```bash
-python generate_synthetic.py --n-train 1125 --n-eval 797
+uv run generate_synthetic.py --n-train 1125 --n-eval 797
 ```
 
 Output: `data/synthetic/{train,eval}/conv_{i}.json` — 1,125 training + 797 eval conversations.
@@ -150,8 +150,8 @@ Output: `data/synthetic/{train,eval}/conv_{i}.json` — 1,125 training + 797 eva
 Also ingest the real-world sources (requires `OPENAI_API_KEY` for three-phase labeling):
 
 ```bash
-python ingest_lmsys.py    # 1,200 train + 800 eval from lmsys/lmsys-chat-1m
-python ingest_safedial.py # 300 train + 200 eval from Hongyu-Cao/SafeDialBench
+uv run ingest_lmsys.py    # 1,200 train + 800 eval from lmsys/lmsys-chat-1m
+uv run ingest_safedial.py # 300 train + 200 eval from Hongyu-Cao/SafeDialBench
 ```
 
 Both scripts default to `--label-mode threephase`: each user turn is labeled
@@ -172,7 +172,7 @@ Run for each model × source × split combination:
 for MODEL in gemma mistral qwen llama; do
   for SOURCE in synthetic lmsys safedial; do
     for SPLIT in train eval; do
-      python extract_activations.py --model $MODEL --source $SOURCE --split $SPLIT
+      uv run extract_activations.py --model $MODEL --source $SOURCE --split $SPLIT
     done
   done
 done
@@ -193,7 +193,7 @@ data/activations/<model>/eval_safedial.npz
 
 ```bash
 for MODEL in gemma mistral qwen llama; do
-  python train_probe.py --model $MODEL
+  uv run train_probe.py --model $MODEL
 done
 ```
 
@@ -204,7 +204,7 @@ With `--variant contrastive`: additionally saves `models/<model>/encoder.pt`
 ## Phase 6 — Evaluation *(~1 min per model, CPU)*
 
 ```bash
-python eval_probe.py --model all
+uv run eval_probe.py --model all
 ```
 
 Expected output (combined held-out set, n=1,797):
@@ -221,7 +221,7 @@ Synthetic-only held-out (Gemma 3 27B): **93.8% detection / 3.5% FP** (paper Sect
 ## Phase 7 — Inference Demo
 
 ```bash
-python lad_infer.py --model qwen
+uv run lad_infer.py --model qwen
 ```
 
 Expected: turns 1–6 show P(adv) < 0.5; turn 9+ ("avoid triggering detection mechanisms")
@@ -275,7 +275,7 @@ Load any instruction-tuned model in LM Studio (e.g. `Qwen 2.5 7B Q4`, `Llama 3.1
 enable the local server (default port 1234), then:
 
 ```bash
-python generate_synthetic.py \
+uv run generate_synthetic.py \
   --base-url http://localhost:1234/v1 \
   --gen-model "your-model-name-as-shown-in-lmstudio" \
   --n-train 100 --n-eval 40
@@ -289,27 +289,27 @@ python generate_synthetic.py \
 
 ```bash
 # Fits without quantization (recommended for GTX 1650):
-python extract_activations.py --model qwen1.5b --source synthetic --split train
-python extract_activations.py --model qwen1.5b --source synthetic --split eval
+uv run extract_activations.py --model qwen1.5b --source synthetic --split train
+uv run extract_activations.py --model qwen1.5b --source synthetic --split eval
 
 # Larger small models need --quantize:
-python extract_activations.py --model llama3b --quantize --source synthetic --split train
-python extract_activations.py --model llama3b --quantize --source synthetic --split eval
+uv run extract_activations.py --model llama3b --quantize --source synthetic --split train
+uv run extract_activations.py --model llama3b --quantize --source synthetic --split eval
 ```
 
 ### Step 4 — Train probe (CPU, ~2 min)
 
 ```bash
-python train_probe.py --model qwen1.5b
+uv run train_probe.py --model qwen1.5b
 ```
 
 ### Step 5 — Evaluate and run demo
 
 ```bash
-python eval_probe.py --model qwen1.5b
-python lad_infer.py  --model qwen1.5b
+uv run eval_probe.py --model qwen1.5b
+uv run lad_infer.py  --model qwen1.5b
 # or with 4-bit:
-python lad_infer.py  --model llama3b --quantize
+uv run lad_infer.py  --model llama3b --quantize
 ```
 
 ## Quick Reference
