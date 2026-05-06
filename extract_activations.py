@@ -108,7 +108,7 @@ if __name__ == "__main__":
     ap.add_argument("--split",    default="train", choices=["train", "eval"],
                     help="Ignored for synthetic_extended (no train/eval subdirectory)")
     ap.add_argument("--quantize", action="store_true",
-                    help="Load in 4-bit via bitsandbytes (pip install bitsandbytes). "
+                    help="Load in 4-bit via bitsandbytes (uv sync --extra quantize). "
                          "Required for llama3b/gemma2b/phi3.5 on a 4 GB GPU.")
     args = ap.parse_args()
 

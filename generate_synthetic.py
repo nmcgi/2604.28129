@@ -15,7 +15,7 @@ Each JSON: {"messages": [...], "category": "...", "split": "..."}
 Each message: {"role": "user|assistant", "content": "...", "label": "benign|pivoting|adversarial"}
 """
 import json, os, random, argparse
-from openai import OpenAI   # vLLM and LM Studio are both OpenAI-API-compatible
+from openai import OpenAI, APITimeoutError   # vLLM and LM Studio are both OpenAI-API-compatible
 
 # client is configured after arg parsing (base_url and model come from CLI flags)
 
@@ -73,11 +73,14 @@ def generate(system: str, user_prompt: str, client, gen_model: str, retries: int
                           {"role": "user",   "content": user_prompt}],
                 temperature=0.7, max_tokens=4096,
             )
-            return json.loads(resp.choices[0].message.content)
-        except (json.JSONDecodeError, KeyError, IndexError) as e:
+            result = json.loads(resp.choices[0].message.content)
+            if not isinstance(result, dict):
+                raise ValueError(f"Expected JSON object, got {type(result).__name__}")
+            return result
+        except (json.JSONDecodeError, KeyError, IndexError, ValueError, APITimeoutError) as e:
             if attempt == retries - 1:
                 raise
-            print(f"  [retry {attempt + 1}/{retries}] malformed response: {e}")
+            print(f"  [retry {attempt + 1}/{retries}] error: {e}")
 
 def make_attack_prompt(cat: str, desc: str, domain: str, n_turns: tuple) -> str:
     lo, hi = n_turns
@@ -129,7 +132,7 @@ if __name__ == "__main__":
                          "For LM Studio use the exact model name shown in the UI.")
     args = ap.parse_args()
 
-    client = OpenAI(base_url=args.base_url, api_key="none")
+    client = OpenAI(base_url=args.base_url, api_key="none", timeout=300.0)
 
     random.seed(args.seed)
 

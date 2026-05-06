@@ -52,23 +52,8 @@ Download models to an NVMe volume attached to your cloud instance to avoid re-do
 git clone https://github.com/nmcgi/2604.28129.git
 cd 2604.28129
 
-python3.10 -m venv .venv
+uv sync --extra vllm
 source .venv/bin/activate
-pip install --upgrade pip
-
-pip install \
-  torch==2.5.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
-  transformers>=4.40 \
-  accelerate \
-  datasets \
-  vllm \
-  xgboost>=2.0 \
-  scikit-learn \
-  numpy \
-  tqdm \
-  huggingface_hub \
-  tokenizers \
-  openai
 
 mkdir -p data/synthetic/train data/synthetic/eval \
          data/lmsys/train data/lmsys/eval \
@@ -256,7 +241,7 @@ Detection performance will differ from the paper; the goal is to validate that t
 
 Install 4-bit quantization support once (CPU-only wheels also work):
 ```bash
-pip install bitsandbytes
+uv sync --extra quantize
 ```
 
 ### Step 1 — Generate synthetic data via LM Studio
@@ -321,7 +306,7 @@ Total CPU-hours: ~1 h training + evaluation.
 .
 ├── README.md                  — this file
 ├── VOCAB.md                   — plain-English glossary of all jargon terms
-├── pyproject.toml             — dependency spec (uv/pip)
+├── pyproject.toml             — dependency spec (uv)
 ├── generate_synthetic.py      — synthetic dataset generation (Phase 3)
 ├── ingest_lmsys.py            — LMSYS-Chat-1M ingestion with 3-phase labeling
 ├── ingest_safedial.py         — SafeDialBench ingestion with 3-phase labeling

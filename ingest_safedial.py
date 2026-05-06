@@ -24,7 +24,7 @@ Each output JSON:
    "category": "<attack_strategy>"}
 
 Requires:
-  pip install datasets openai tqdm
+  uv sync
   OPENAI_API_KEY environment variable (for threephase mode)
 """
 import json, os, random, argparse

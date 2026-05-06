@@ -15,7 +15,7 @@ Reports:
 Paper targets: generator-vs-judge κ ≈ 0.675–0.686; judge-vs-judge κ ≈ 0.75–0.78.
 
 Requires:
-  pip install anthropic openai google-generativeai scikit-learn
+  uv sync --extra label-val
   Environment variables: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY
 
 Usage:

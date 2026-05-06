@@ -23,3 +23,6 @@ models/
 # OS noise
 .DS_Store
 Thumbs.db
+
+# env vars
+.env

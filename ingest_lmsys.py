@@ -15,7 +15,7 @@ Label mode (--label-mode):
                           Simpler and cheaper but misses the pivoting class.
 
 Requires:
-  pip install datasets openai tqdm
+  uv sync
   OPENAI_API_KEY environment variable
 """
 import json, os, random, argparse
