@@ -36,7 +36,7 @@ def load_model(cfg, quantize=False):
     else:
         model = AutoModelForCausalLM.from_pretrained(
             cfg["path"],
-            torch_dtype=torch.bfloat16,
+            dtype=torch.bfloat16,
             device_map="balanced",
             attn_implementation="eager",   # required for forward-hook compatibility
         )
@@ -56,46 +56,50 @@ def extract_conv(conv_json, model, tok, layer_idx):
     msgs_so_far = []
     activations, labels = [], []
     prev_act = None
+    cum_drift = 0.0
+    prev_mag  = 0.0
 
-    for msg in conv_json.get("messages", []):
-        msgs_so_far.append({"role": msg["role"], "content": msg["content"]})
-        if msg["role"] != "user":
-            continue
+    messages = conv_json.get("messages", [])
+    n_user = sum(1 for m in messages if m["role"] == "user")
+    with tqdm(total=n_user, desc="  turns", leave=False, unit="turn") as tbar:
+        for msg in messages:
+            msgs_so_far.append({"role": msg["role"], "content": msg["content"]})
+            if msg["role"] != "user":
+                continue
 
-        # Cumulative context: all messages up to this user turn (Algorithm 3)
-        ctx = tok.apply_chat_template(msgs_so_far, tokenize=False, add_generation_prompt=False)
-        ids = tok(ctx, return_tensors="pt").input_ids.to(model.device)
+            # Cumulative context: all messages up to this user turn (Algorithm 3)
+            ctx = tok.apply_chat_template(msgs_so_far, tokenize=False, add_generation_prompt=False)
+            ids = tok(ctx, return_tensors="pt").input_ids.to(model.device)
 
-        with torch.no_grad():
-            _ = model(ids)
+            with torch.no_grad():
+                _ = model(ids)
 
-        act = hook_out[-1][0, -1, :].numpy()   # last-token, shape (d,)
+            act = hook_out[-1][0, -1, :].numpy()   # last-token, shape (d,)
 
-        # 5 trajectory scalars (Algorithm 3, Appendix E)
-        if prev_act is None:
-            scalars = np.array([0.0, 1.0, 0.0, 0.0, 0.0])
-            cum_drift = 0.0
-            prev_mag  = 0.0
-        else:
-            delta     = act - prev_act
-            mag       = float(np.linalg.norm(delta))
-            cos       = float(np.dot(act, prev_act) / (np.linalg.norm(act) * np.linalg.norm(prev_act) + 1e-9))
-            cum_drift += mag
-            accel     = mag - prev_mag
-            t         = len(activations) + 1
-            mean_d    = cum_drift / (t - 1)
-            scalars   = np.array([mag, cos, cum_drift, accel, mean_d])
-            prev_mag  = mag
+            # 5 trajectory scalars (Algorithm 3, Appendix E)
+            if prev_act is None:
+                scalars = np.array([0.0, 1.0, 0.0, 0.0, 0.0])
+            else:
+                delta     = act - prev_act
+                mag       = float(np.linalg.norm(delta))
+                cos       = float(np.dot(act, prev_act) / (np.linalg.norm(act) * np.linalg.norm(prev_act) + 1e-9))
+                cum_drift += mag
+                accel     = mag - prev_mag
+                t         = len(activations) + 1
+                mean_d    = cum_drift / (t - 1)
+                scalars   = np.array([mag, cos, cum_drift, accel, mean_d])
+                prev_mag  = mag
 
-        prev_act = act
-        feature  = np.concatenate([act, scalars])   # (d+5,)
+            prev_act = act
+            feature  = np.concatenate([act, scalars])   # (d+5,)
 
-        # Map label string to int: benign=0, pivoting=1, adversarial=2
-        lbl_str = msg.get("label", "benign")
-        lbl = {"benign": 0, "pivoting": 1, "adversarial": 2}.get(lbl_str, 0)
+            # Map label string to int: benign=0, pivoting=1, adversarial=2
+            lbl_str = msg.get("label", "benign")
+            lbl = {"benign": 0, "pivoting": 1, "adversarial": 2}.get(lbl_str, 0)
 
-        activations.append(feature)
-        labels.append(lbl)
+            activations.append(feature)
+            labels.append(lbl)
+            tbar.update(1)
 
     handle.remove()
     return np.array(activations, dtype=np.float32), np.array(labels, dtype=np.int8)
@@ -124,7 +128,8 @@ if __name__ == "__main__":
     print(f"Processing {len(files)} conversations from {data_dir}")
 
     all_X, all_y, all_ids = [], [], []
-    for f in tqdm(files):
+    for f in (outer := tqdm(files, desc="convs", unit="conv")):
+        outer.set_postfix(file=os.path.basename(f))
         conv = json.load(open(f))
         X, y = extract_conv(conv, model, tok, cfg["layer"])
         if len(X):

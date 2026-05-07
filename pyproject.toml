@@ -18,6 +18,7 @@ dependencies = [
     # Dataset ingestion & generation
     "datasets",
     "openai",               # generate_synthetic.py + ingest_lmsys.py + ingest_safedial.py
+    "anthropic",            # generate_synthetic.py (--provider anthropic) + eval_label_validation.py
     # Utilities
     "huggingface-hub",
     "tokenizers",
@@ -28,7 +29,7 @@ dependencies = [
 # uv sync --extra quantize  — 4-bit loading for llama3b/gemma2b/phi3.5 on 4 GB GPU
 quantize = ["bitsandbytes"]
 # uv sync --extra label-val  — eval_label_validation.py judges
-label-val = ["anthropic", "google-generativeai"]
+label-val = ["google-generativeai"]
 # uv sync --extra vllm  — large-scale synthetic generation (Linux / WSL2 only)
 vllm = ["vllm"]
 

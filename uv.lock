@@ -1712,6 +1712,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "accelerate" },
+    { name = "anthropic" },
     { name = "datasets" },
     { name = "huggingface-hub" },
     { name = "numpy" },
@@ -1729,7 +1730,6 @@ dependencies = [
 
 [package.optional-dependencies]
 label-val = [
-    { name = "anthropic" },
     { name = "google-generativeai" },
 ]
 quantize = [
@@ -1742,7 +1742,7 @@ vllm = [
 [package.metadata]
 requires-dist = [
     { name = "accelerate" },
-    { name = "anthropic", marker = "extra == 'label-val'" },
+    { name = "anthropic" },
     { name = "bitsandbytes", marker = "extra == 'quantize'" },
     { name = "datasets" },
     { name = "google-generativeai", marker = "extra == 'label-val'" },

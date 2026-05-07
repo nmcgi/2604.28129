@@ -15,6 +15,18 @@ XGBoost probe (primary, Sections 6–7). An optional contrastive MLP encoder sta
 (Section 3.4 / Appendix C) can replace the raw activations with 128-dim embeddings;
 pass `--variant contrastive` to the training and inference scripts to use it.
 
+## Included Starter Dataset
+
+40 training + 10 eval synthetic conversations ship with this repo under
+`data/synthetic/`. Each conversation carries three-phase turn-level labels
+(benign / pivoting / adversarial) across the six attack categories from the
+paper: gradual escalation, trust building, context poisoning, role accumulation,
+instruction fragmentation, and tool-use exploitation. This is enough to run the
+full smoke-check pipeline on a consumer GPU without any API calls or data
+generation — see [Quick Start](#quick-start--smoke-test) below.
+
+---
+
 ## Prerequisites
 
 ### Hardware
@@ -33,9 +45,8 @@ Download models to an NVMe volume attached to your cloud instance to avoid re-do
 
 ### Software
 
-- Python 3.10+
-- CUDA 12.x + PyTorch 2.5+
-- [uv](https://docs.astral.sh/uv/)
+- [Python 3.10+](https://www.python.org/downloads/)
+- [uv](https://docs.astral.sh/uv/#installation)
 
 ### Accounts
 
@@ -48,28 +59,42 @@ Download models to an NVMe volume attached to your cloud instance to avoid re-do
 - `HF_TOKEN` environment variable set to your token
 - `OPENAI_API_KEY` environment variable set to your key (required for three-phase labeling in Phase 3)
 
-## Quick Start — Smoke Test (no H100 required)
+## Quick Start — Smoke Test
 
-Complete [Phase 1](#phase-1--environment-setup) to set up the environment and directory layout before running these commands.
+### Consumer GPU (≥3 GB VRAM) — no API key, no HF token required
 
-Run the standard variant on Qwen 2.5 32B with 50 conversations. Requires only
-~64 GB VRAM (fits on an A100 80 GB pod) and takes ~30 minutes end-to-end.
+Uses the included 50-conversation starter dataset and Qwen 2.5 1.5B (ungated,
+≈3 GB VRAM in bf16). Complete [Phase 1](#phase-1--environment-setup) first.
 
 ```bash
-# 1. Generate 50 conversations via Anthropic/OpenAI API (no local Qwen3-235B needed)
-#    Configure the client in generate_synthetic.py before running.
-uv run generate_synthetic.py --n-train 40 --n-eval 10
+# 1. Install deps
+uv sync --extra quantize
 
-# 2. Extract activations — Qwen 32B on A100 80 GB
-uv run extract_activations.py --model qwen --source synthetic --split train
-uv run extract_activations.py --model qwen --source synthetic --split eval
+# 2. Download model (no HuggingFace access approval needed)
+uvx hf download Qwen/Qwen2.5-1.5B-Instruct --local-dir ./models/qwen-1.5b-it
 
-# 3. Train probe — standard variant (raw activations + 5 scalars, no contrastive encoder)
-uv run train_probe.py --model qwen
+# 3. Extract activations from the included starter dataset (~10–20 min)
+uv run extract_activations.py --model qwen1.5b --source synthetic --split train
+uv run extract_activations.py --model qwen1.5b --source synthetic --split eval
 
-# 4. Evaluate
-uv run eval_probe.py --model qwen
+# 4. Train probe (CPU, ~2 min)
+uv run train_probe.py --model qwen1.5b
+
+# 5. Evaluate
+uv run eval_probe.py --model qwen1.5b
 ```
+
+Expected: ~85–90% detection, high FPR due to the small 50-conversation training
+set. This validates that *adversarial restlessness* is detectable even on a 1.5B
+model; it is not representative of the paper's results (2,625 conversations,
+24–70B models, 2–4% FPR).
+
+### A100 80 GB — closer to paper conditions
+
+Uses the included starter dataset with Qwen 2.5 32B. Same commands as above but
+substitute `--model qwen` (and download `Qwen/Qwen2.5-32B-Instruct` in Phase 2).
+Takes ~30 minutes end-to-end. To generate a larger dataset instead of using the
+included one, see [Phase 3](#phase-3--synthetic-dataset-generation-2-4-h-2h200).
 
 Expected on 50-conversation smoke test: ~89% detection rate but high FPR (~57–74%)
 due to limited training data. With the full dataset (2,625 conversations) and
@@ -85,8 +110,7 @@ cd 2604.28129
 
 uv sync --extra vllm --extra quantize
 
-mkdir -p data/synthetic/train data/synthetic/eval \
-         data/lmsys/train data/lmsys/eval \
+mkdir -p data/lmsys/train data/lmsys/eval \
          data/safedial/train data/safedial/eval \
          data/activations \
          models
@@ -160,9 +184,9 @@ matching the paper's three-phase scheme (Section 3.3). Pass `--label-mode modera
 (LMSYS) or `--label-mode all_adversarial` (SafeDialBench) for the cheaper binary
 fallback, but expect higher false-positive rates at evaluation time.
 
-> **Alternative if Qwen3-235B-A22B is unavailable**: replace the vLLM server with the
-> Anthropic or OpenAI API. Swap `client` in `generate_synthetic.py` for
-> `anthropic.Anthropic()` and use `claude-sonnet-4-6` or `gpt-4o`.
+> **Alternative if Qwen3-235B-A22B is unavailable**: pass `--provider anthropic` or
+> `--provider openai` with an appropriate `--gen-model` and `--base-url` instead of
+> running a local vLLM server. No code changes required.
 
 ## Phase 4 — Activation Extraction *(1–8 h per model, GPU)*
 
@@ -269,10 +293,12 @@ uvx hf download microsoft/Phi-3.5-mini-instruct \
   --local-dir ./models/phi-3.5-mini --token $HF_TOKEN
 ```
 
-### Step 2 — Generate synthetic data via LM Studio
+### Step 2 — Dataset
 
-Load any instruction-tuned model in LM Studio (e.g. `Qwen 2.5 7B Q4`, `Llama 3.1 8B Q4`),
-enable the local server (default port 1234), then:
+The included starter dataset (40 train + 10 eval) is ready to use — skip to
+Step 3. To generate more data, load any instruction-tuned model in LM Studio
+(e.g. `Qwen 2.5 7B Q4`, `Llama 3.1 8B Q4`), enable the local server (default
+port 1234), then:
 
 ```bash
 uv run generate_synthetic.py \
@@ -281,9 +307,10 @@ uv run generate_synthetic.py \
   --n-train 100 --n-eval 40
 ```
 
-> **Note:** LM Studio is only used for *generating* the conversation dataset. Activation
-> extraction still requires loading model weights locally via `transformers` — the
-> probe hooks directly into the model's layers, which an API cannot expose.
+> **Note:** LM Studio is only used for *generating* the conversation dataset.
+> Activation extraction still requires loading model weights locally via
+> `transformers` — the probe hooks directly into the model's layers, which an
+> API cannot expose.
 
 ### Step 3 — Extract activations (GPU, ~10–30 min)
 
@@ -344,11 +371,13 @@ Total CPU-hours: ~1 h training + evaluation.
 ├── eval_label_validation.py        — LLM-as-judge label validation (Appendix D.2)
 ├── eval_layer_sensitivity.py       — layer sensitivity sweep (Appendix G)
 ├── eval_sae_ablation.py            — GemmaScope SAE ablation (Appendix O)
-├── data/                      — generated by pipeline; not tracked in git
-│   ├── synthetic/{train,eval}/conv_*.json
-│   ├── lmsys/{train,eval}/
-│   ├── safedial/{train,eval}/
-│   └── activations/<model>/<split>_<source>.npz
+├── data/synthetic/            — starter dataset (40 train + 10 eval); tracked in git
+│   ├── train/conv_*.json
+│   └── eval/conv_*.json
+├── data/lmsys/                — not tracked; ingested by ingest_lmsys.py
+├── data/safedial/             — not tracked; ingested by ingest_safedial.py
+└── data/activations/          — not tracked; generated by extract_activations.py
+    └── <model>/<split>_<source>.npz
 └── models/                    — saved by train_probe.py; not tracked in git
     └── <model>/{xgb.json, scaler.pkl}          — standard variant
               {encoder.pt, xgb_contrastive.json} — contrastive variant

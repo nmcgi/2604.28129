@@ -8,8 +8,12 @@ __pycache__/
 *.py[cod]
 *.pyo
 
-# Generated data — large, reproducible via the pipeline scripts
-data/
+# Large / externally-sourced data — reproducible, not committed
+data/lmsys/
+data/safedial/
+data/activations/
+data/synthetic_extended/
+# data/synthetic/ is intentionally committed (starter dataset for smoke check)
 
 # Trained model artefacts — large, reproducible via train_probe.py
 models/
@@ -25,4 +29,4 @@ models/
 Thumbs.db
 
 # env vars
-.env
+.env*
