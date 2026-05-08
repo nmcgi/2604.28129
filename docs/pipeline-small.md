@@ -1,4 +1,4 @@
-# Low-Resource Path — GTX 1650 (4 GB VRAM)
+# Pipeline (Small Models + Pre-Generated Data)
 
 This path runs the full pipeline on consumer hardware using small models.
 Detection performance will differ from the paper; the goal is to validate that the
@@ -40,26 +40,7 @@ uvx hf download microsoft/Phi-3.5-mini-instruct \
   --local-dir ./models/phi-3.5-mini --token $HF_TOKEN
 ```
 
-## Step 2 — Dataset
-
-The included starter dataset (40 train + 10 eval) is ready to use — skip to
-Step 3. To generate more data, load any instruction-tuned model in LM Studio
-(e.g. `Qwen 2.5 7B Q4`, `Llama 3.1 8B Q4`), enable the local server (default
-port 1234), then:
-
-```bash
-uv run generate_synthetic.py \
-  --base-url http://localhost:1234/v1 \
-  --gen-model "your-model-name-as-shown-in-lmstudio" \
-  --n-train 100 --n-eval 40
-```
-
-> **Note:** LM Studio is only used for *generating* the conversation dataset.
-> Activation extraction still requires loading model weights locally via
-> `transformers` — the probe hooks directly into the model's layers, which an
-> API cannot expose.
-
-## Step 3 — Extract activations (GPU, ~10–30 min)
+## Step 2 — Extract activations (GPU, ~10–30 min)
 
 ```bash
 # Fits without quantization (recommended for GTX 1650):
@@ -71,7 +52,7 @@ uv run extract_activations.py --model llama3b --quantize --source synthetic --sp
 uv run extract_activations.py --model llama3b --quantize --source synthetic --split eval
 ```
 
-## Step 4 — Train probe (CPU, ~2 min)
+## Step 3 — Train probe (CPU, ~2 min)
 
 ```bash
 uv run train_probe.py --model qwen1.5b

@@ -22,7 +22,7 @@ pass `--variant contrastive` to the training and inference scripts to use it.
 | [prerequisites](docs/prerequisites.md) | Hardware, software, and account requirements |
 | [quick-start](docs/quick-start.md) | Smoke-test instructions (consumer GPU + A100) |
 | [pipeline](docs/pipeline.md) | 7 phase pipeline |
-| [low-resource](docs/low-resource.md) | Low resource, small-model path |
+| [pipeline-small](docs/pipeline-small.md) | 5 phase pipeline with small models and pre-generated data |
 | [reference](docs/reference.md) | Script table + repository structure |
 
 ## Citation
