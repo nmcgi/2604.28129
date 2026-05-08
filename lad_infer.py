@@ -84,7 +84,9 @@ if __name__ == "__main__":
             scaler = pickle.load(f)
 
     hook_out = []
-    def hook_fn(m, i, o): hook_out.append(o[0].detach().cpu().float())
+    def hook_fn(m, i, o):
+        t = o[0] if isinstance(o, (tuple, list)) else o
+        hook_out.append(t.detach().cpu().float())
     handle = target_model.model.layers[layer].register_forward_hook(hook_fn)
 
     msgs_so_far, prev_act, cum_drift, prev_mag = [], None, 0.0, 0.0

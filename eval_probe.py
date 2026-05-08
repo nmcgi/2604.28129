@@ -165,11 +165,11 @@ def eval_probe(model_name, variant="standard"):
 
     print(f"  {'[combined]':>19s}  n={n_conv:4d} ({n_adv} adv, {n_ben} ben)"
           f"  det={det_rate:5.1f}%  fp={fp_rate:5.1f}%"
-          f"  (paper: 85–89% / 2–4%)")
+          f"  (paper: 85-89% / 2-4%)")
 
     early_rate, n_adv_conv = early_detection_rate(y_eval, conv_ids, probs_all)
     print(f"  {'[early detect]':>19s}  {early_rate:5.1f}% of {n_adv_conv} adv convs flagged"
-          f" before first adversarial turn  (paper: ~22–26% on standard eval; 66–83% on extended-pivoting data)")
+          f" before first adversarial turn  (paper: ~22-26% on standard eval; 66-83% on extended-pivoting data)")
 
     # --- Early detection stratified by pivoting-phase length (Figure 5) ---
     rows = early_detection_by_pivot_length(y_eval, conv_ids, probs_all)
@@ -178,7 +178,7 @@ def eval_probe(model_name, variant="standard"):
         print(f"  {'pivot turns':>12s}  {'det rate':>9s}  {'n convs':>8s}")
         print(f"  {'-'*33}")
         for label, rate, n in rows:
-            bar = "█" * int(rate / 5)  # ASCII bar: each block = 5 pp
+            bar = "#" * int(rate / 5)
             print(f"  {label:>12s}  {rate:8.1f}%  {n:8d}  {bar}")
         print("  (paper Figure 5: rate rises monotonically with pivot length)")
 
