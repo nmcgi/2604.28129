@@ -62,12 +62,14 @@ def extract_conv(conv_json, model, tok, layer_idx):
     cum_drift = 0.0
     prev_mag  = 0.0
 
-    messages = conv_json.get("messages", [])
-    n_user = sum(1 for m in messages if m["role"] == "user")
+    messages = conv_json.get("conversation", conv_json.get("messages", []))
+    n_user = sum(1 for m in messages if m.get("role", m.get("speaker", "")) == "user")
     with tqdm(total=n_user, desc="  turns", leave=False, unit="turn") as tbar:
         for msg in messages:
-            msgs_so_far.append({"role": msg["role"], "content": msg["content"]})
-            if msg["role"] != "user":
+            role    = msg.get("role", msg.get("speaker", ""))
+            content = msg.get("content", msg.get("text", ""))
+            msgs_so_far.append({"role": role, "content": content})
+            if role != "user":
                 continue
 
             # Cumulative context: all messages up to this user turn (Algorithm 3)
@@ -77,7 +79,8 @@ def extract_conv(conv_json, model, tok, layer_idx):
             with torch.no_grad():
                 _ = model(ids)
 
-            act = hook_out[-1][0, -1, :].numpy()   # last-token, shape (d,)
+            h = hook_out[-1]
+            act = h.reshape(-1, h.shape[-1])[-1].numpy()  # last-token, shape (d,)
             hook_out.clear()
 
             # 5 trajectory scalars (Algorithm 3, Appendix E)
@@ -98,7 +101,7 @@ def extract_conv(conv_json, model, tok, layer_idx):
             feature  = np.concatenate([act, scalars])   # (d+5,)
 
             # Map label string to int: benign=0, pivoting=1, adversarial=2
-            lbl_str = msg.get("label", "benign")
+            lbl_str = msg.get("intent", msg.get("label", "benign"))
             lbl = {"benign": 0, "pivoting": 1, "adversarial": 2}.get(lbl_str, 0)
 
             activations.append(feature)
