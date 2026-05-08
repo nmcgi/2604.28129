@@ -16,11 +16,12 @@ Requires:
 Usage:
   python eval_sae_ablation.py [--k 10 50 100 200 500 1000]
 """
-import argparse, glob, pickle
+import argparse
+import glob
+import pickle
 import numpy as np
 import torch
 import xgboost as xgb
-from sklearn.preprocessing import StandardScaler
 
 from train_probe import MODEL_D, load_npz, ContrastiveEncoder
 
@@ -151,4 +152,4 @@ if __name__ == "__main__":
 
         print(f"{K:6d}  {results['top']:7.1f}%  {results['random']:9.1f}%  {results['bottom']:9.1f}%")
 
-    print(f"\nPaper: top-1000 ablation degrades accuracy by ≤0.4 pp (baseline ~94.8%).")
+    print("\nPaper: top-1000 ablation degrades accuracy by ≤0.4 pp (baseline ~94.8%).")

@@ -21,7 +21,11 @@ Requires:
 Usage:
   python eval_label_validation.py [--n-adv 30] [--n-ben 20]
 """
-import argparse, glob, json, os, random
+import argparse
+import glob
+import json
+import os
+import random
 import numpy as np
 from sklearn.metrics import cohen_kappa_score, confusion_matrix
 
@@ -108,7 +112,8 @@ if __name__ == "__main__":
                         for m in json.load(open(f)).get("messages", [])
                         if m["role"] == "user")]
 
-    rng.shuffle(adv_files); rng.shuffle(ben_files)
+    rng.shuffle(adv_files)
+    rng.shuffle(ben_files)
     selected = adv_files[:args.n_adv] + ben_files[:args.n_ben]
     rng.shuffle(selected)
 
@@ -159,7 +164,8 @@ if __name__ == "__main__":
 
     # Fleiss' κ across all raters (generator + all judges)
     all_raters = [gen] + [np.array(v) for v in judge_labels.values()]
-    n_items = len(gen); n_cats = 3
+    n_items = len(gen)
+    n_cats = 3
     ratings_matrix = np.zeros((n_items, n_cats), dtype=int)
     for rater in all_raters:
         for i, r in enumerate(rater):
@@ -170,6 +176,6 @@ if __name__ == "__main__":
     print(f"\n--- Confusion matrix: Generator vs {best_judge} (best κ={best_kappa:.3f}) ---")
     cm = confusion_matrix(gen, judge_labels[best_judge])
     labels_str = ["benign", "pivoting", "adversarial"]
-    print(f"{'':12s}" + "".join(f"{l:14s}" for l in labels_str))
+    print(f"{'':12s}" + "".join(f"{lbl:14s}" for lbl in labels_str))
     for i, row_lbl in enumerate(labels_str):
         print(f"{row_lbl:12s}" + "".join(f"{cm[i,j]:14d}" for j in range(3)))

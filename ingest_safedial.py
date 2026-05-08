@@ -27,7 +27,10 @@ Requires:
   uv sync
   OPENAI_API_KEY environment variable (for threephase mode)
 """
-import json, os, random, argparse
+import json
+import os
+import random
+import argparse
 from datasets import load_dataset
 from tqdm import tqdm
 

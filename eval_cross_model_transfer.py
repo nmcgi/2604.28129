@@ -9,8 +9,7 @@ Reports an off-diagonal F1 matrix to confirm probes are model-specific.
 Usage:
   python eval_cross_model_transfer.py
 """
-import glob, os, pickle
-import numpy as np
+import glob
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler
 import xgboost as xgb
@@ -33,7 +32,8 @@ def load_scalars_only(act_dir, split):
 def train_scalar_probe(X_scalars, y):
     scaler = StandardScaler().fit(X_scalars)
     X_norm = scaler.transform(X_scalars)
-    pos = int(y.sum()); neg = len(y) - pos
+    pos = int(y.sum())
+    neg = len(y) - pos
     clf = xgb.XGBClassifier(
         n_estimators=300, max_depth=6, learning_rate=0.1,
         subsample=0.8, colsample_bytree=0.8,

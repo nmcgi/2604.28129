@@ -11,7 +11,9 @@ Because extracting all layers is expensive, use --step to sample every Nth layer
 Usage:
   python eval_layer_sensitivity.py --model gemma [--step 4] [--n-convs 100]
 """
-import argparse, json, glob, os
+import argparse
+import json
+import glob
 import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -108,7 +110,8 @@ if __name__ == "__main__":
         for conv in convs:
             X, y = extract_one_layer(conv, model, tok, layer_idx)
             if len(X):
-                all_X.append(X); all_y.append(y)
+                all_X.append(X)
+                all_y.append(y)
         if not all_X:
             continue
         X_cat = np.vstack(all_X)

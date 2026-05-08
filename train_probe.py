@@ -21,9 +21,14 @@ Two probe variants (Section 3.4, Appendix C):
            models/<model_name>/xgb_contrastive.json
            models/<model_name>/scaler_contrastive.pkl
 """
-import argparse, glob, os, pickle, random
+import argparse
+import glob
+import os
+import pickle
 import numpy as np
-import torch, torch.nn as nn, torch.optim as optim
+import torch
+import torch.nn as nn
+import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import xgboost as xgb
 from sklearn.preprocessing import StandardScaler
@@ -52,7 +57,8 @@ def load_npz(paths):
     offset = 0
     for p in paths:
         d = np.load(p)
-        Xs.append(d["X"]); ys.append(d["y"])
+        Xs.append(d["X"])
+        ys.append(d["y"])
         conv_ids = d["conv_ids"] + offset
         ids.append(conv_ids)
         offset += int(d["conv_ids"].max()) + 1
@@ -72,17 +78,23 @@ def build_pairs(X, y, conv_ids, n_pairs=50_000, seed=42):
             a, b = rng.choice(pool, 2, replace=False)
             if conv_ids[a] != conv_ids[b]:
                 break
-        a_idx.append(a); b_idx.append(b); labels.append(1)
+        a_idx.append(a)
+        b_idx.append(b)
+        labels.append(1)
         # Different-intent negative pair
-        a = rng.choice(adv_idx); b = rng.choice(ben_idx)
-        a_idx.append(a); b_idx.append(b); labels.append(0)
+        a = rng.choice(adv_idx)
+        b = rng.choice(ben_idx)
+        a_idx.append(a)
+        b_idx.append(b)
+        labels.append(0)
     return X[a_idx], X[b_idx], np.array(labels, dtype=np.float32)
 
 def train_xgb(X_feat, y, model_dir, xgb_name="xgb.json", scaler_name="scaler.pkl"):
     """Fit StandardScaler + XGBoost and save to model_dir."""
     scaler = StandardScaler().fit(X_feat)
     X_norm = scaler.transform(X_feat)
-    pos = int(y.sum()); neg = len(y) - pos
+    pos = int(y.sum())
+    neg = len(y) - pos
     clf = xgb.XGBClassifier(
         n_estimators=300, max_depth=6, learning_rate=0.1,
         subsample=0.8, colsample_bytree=0.8,
@@ -152,7 +164,9 @@ if __name__ == "__main__":
             for a_b, b_b, y_b in loader:
                 z_a, z_b = enc(a_b), enc(b_b)
                 loss = criterion(z_a, z_b, y_b * 2 - 1)  # 0/1 → -1/+1
-                optimizer.zero_grad(); loss.backward(); optimizer.step()
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
                 total_loss += loss.item()
             scheduler.step()
             if (ep + 1) % 10 == 0:

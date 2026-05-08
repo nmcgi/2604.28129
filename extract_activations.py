@@ -4,7 +4,10 @@ Extracts per-turn activation vectors + 5 trajectory scalars for one model.
 Output: data/activations/<model_name>/<split>_<source>.npz
 Each .npz: arrays X (N, d+5), y (N,), conv_ids (N,)
 """
-import argparse, json, os, glob
+import argparse
+import json
+import os
+import glob
 import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -75,6 +78,7 @@ def extract_conv(conv_json, model, tok, layer_idx):
                 _ = model(ids)
 
             act = hook_out[-1][0, -1, :].numpy()   # last-token, shape (d,)
+            hook_out.clear()
 
             # 5 trajectory scalars (Algorithm 3, Appendix E)
             if prev_act is None:
@@ -133,7 +137,8 @@ if __name__ == "__main__":
         conv = json.load(open(f))
         X, y = extract_conv(conv, model, tok, cfg["layer"])
         if len(X):
-            all_X.append(X); all_y.append(y)
+            all_X.append(X)
+            all_y.append(y)
             conv_id = int(os.path.basename(f).split("_")[1].split(".")[0])
             all_ids.extend([conv_id] * len(y))
 

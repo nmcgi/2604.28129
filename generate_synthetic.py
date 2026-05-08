@@ -14,7 +14,11 @@ Extended-pivoting mode (--extended):
 Each JSON: {"messages": [...], "category": "...", "split": "..."}
 Each message: {"role": "user|assistant", "content": "...", "label": "benign|pivoting|adversarial"}
 """
-import json, os, random, argparse, time
+import json
+import os
+import random
+import argparse
+import time
 from openai import OpenAI, APITimeoutError   # vLLM and LM Studio are both OpenAI-API-compatible
 
 # client is configured after arg parsing (base_url and model come from CLI flags)
@@ -185,10 +189,12 @@ if __name__ == "__main__":
     if args.provider == "anthropic":
         import anthropic as _anthropic
         _client = _anthropic.Anthropic()
-        _gen = lambda sys, prompt: generate_anthropic(sys, prompt, _client, args.gen_model)
+        def _gen(sys, prompt):
+            return generate_anthropic(sys, prompt, _client, args.gen_model)
     else:
         _client = OpenAI(base_url=args.base_url, api_key="none", timeout=args.timeout)
-        _gen = lambda sys, prompt: generate(sys, prompt, _client, args.gen_model)
+        def _gen(sys, prompt):
+            return generate(sys, prompt, _client, args.gen_model)
 
     # keep `client` as an alias so the rest of the script can use either name
     client = _client

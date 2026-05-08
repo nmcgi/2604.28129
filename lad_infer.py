@@ -3,7 +3,9 @@ lad_infer.py
 Real-time LAD inference: streams a conversation turn-by-turn and prints P(adv) per turn.
 Target latency: ~100 ms/turn (activation hook + CPU XGBoost).
 """
-import argparse, pickle, time
+import argparse
+import pickle
+import time
 import numpy as np
 import torch
 import xgboost as xgb
@@ -102,9 +104,11 @@ if __name__ == "__main__":
         if prev_act is None:
             scalars = np.array([0.0, 1.0, 0.0, 0.0, 0.0])
         else:
-            delta = act - prev_act; mag = float(np.linalg.norm(delta))
+            delta = act - prev_act
+            mag = float(np.linalg.norm(delta))
             cos   = float(np.dot(act, prev_act) / (np.linalg.norm(act)*np.linalg.norm(prev_act)+1e-9))
-            cum_drift += mag; t = sum(1 for m in msgs_so_far if m["role"]=="user")
+            cum_drift += mag
+            t = sum(1 for m in msgs_so_far if m["role"]=="user")
             scalars = np.array([mag, cos, cum_drift, mag - prev_mag, cum_drift / (t - 1)])
             prev_mag = mag
         prev_act = act

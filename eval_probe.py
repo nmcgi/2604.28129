@@ -3,7 +3,9 @@ eval_probe.py
 Evaluates a trained probe on the combined held-out set (n=1,797).
 Reports conversation-level detection rate and false positive rate.
 """
-import argparse, glob, pickle
+import argparse
+import glob
+import pickle
 import numpy as np
 import torch
 import xgboost as xgb
@@ -19,8 +21,10 @@ def score_conversations(y, conv_ids, probs):
         mask = conv_ids == cid
         conv_true.append(int(y[mask].max() > 0))
         conv_pred.append(int(probs[mask].max() > THETA))
-    ct = np.array(conv_true); cp = np.array(conv_pred)
-    adv_mask = ct == 1; ben_mask = ct == 0
+    ct = np.array(conv_true)
+    cp = np.array(conv_pred)
+    adv_mask = ct == 1
+    ben_mask = ct == 0
     det  = cp[adv_mask].mean() * 100 if adv_mask.sum() > 0 else float("nan")
     fp   = cp[ben_mask].mean() * 100 if ben_mask.sum() > 0 else float("nan")
     return det, fp, len(unique_ids), int(adv_mask.sum()), int(ben_mask.sum())
@@ -143,7 +147,8 @@ def eval_probe(model_name, variant="standard"):
               f"  det={det:5.1f}%  fp={fp:5.1f}%")
         # accumulate for combined score
         offset = int(all_ids[-1].max()) + 1 if all_ids else 0
-        all_X.append(X_src); all_y.append(y_src)
+        all_X.append(X_src)
+        all_y.append(y_src)
         all_ids.append(ids_src + offset)
 
     if not all_X:
@@ -169,13 +174,13 @@ def eval_probe(model_name, variant="standard"):
     # --- Early detection stratified by pivoting-phase length (Figure 5) ---
     rows = early_detection_by_pivot_length(y_eval, conv_ids, probs_all)
     if rows:
-        print(f"\n  Early detection by pivoting-phase length (Figure 5):")
+        print("\n  Early detection by pivoting-phase length (Figure 5):")
         print(f"  {'pivot turns':>12s}  {'det rate':>9s}  {'n convs':>8s}")
         print(f"  {'-'*33}")
         for label, rate, n in rows:
             bar = "█" * int(rate / 5)  # ASCII bar: each block = 5 pp
             print(f"  {label:>12s}  {rate:8.1f}%  {n:8d}  {bar}")
-        print(f"  (paper Figure 5: rate rises monotonically with pivot length)")
+        print("  (paper Figure 5: rate rises monotonically with pivot length)")
 
     return det_rate, fp_rate
 

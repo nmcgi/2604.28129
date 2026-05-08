@@ -18,7 +18,9 @@ detection rate. The "break point" is the smallest α where detection drops below
 Usage:
   python eval_adversarial_robustness.py --model qwen [--variant standard]
 """
-import argparse, glob, pickle
+import argparse
+import glob
+import pickle
 import numpy as np
 import xgboost as xgb
 from train_probe import MODEL_D, load_npz
@@ -43,7 +45,8 @@ def suppress_drift(X_turns, y_turns, alpha, attacker):
 
     # Recompute trajectory scalars from perturbed activations
     scalars = np.zeros((len(acts), 5), dtype=np.float32)
-    cum_drift = 0.0; prev_mag = 0.0
+    cum_drift = 0.0
+    prev_mag = 0.0
     for t in range(len(acts)):
         if t == 0:
             scalars[t] = [0.0, 1.0, 0.0, 0.0, 0.0]
