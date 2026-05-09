@@ -5,21 +5,21 @@ Two probe variants (Section 3.4, Appendix C):
   --variant standard  (default)
     XGBoost directly on raw activations + 5 trajectory scalars (d+5 features).
     Matches the primary results in Sections 6–7 / Figure 7 (85–89% det, 2–4% FP).
-    Saves: models/<model_name>/xgb.json
-           models/<model_name>/scaler.pkl
+    Saves: probes/<model_name>/xgb.json
+           probes/<model_name>/scaler.pkl
 
   --variant scalar
     XGBoost on trajectory scalars only (5 features, no raw activations).
     Reproduces the scalars-only ablation from Section 5 (89.6% det, 57–74% FP).
-    Saves: models/<model_name>/xgb_scalar.json
-           models/<model_name>/scaler_scalar.pkl
+    Saves: probes/<model_name>/xgb_scalar.json
+           probes/<model_name>/scaler_scalar.pkl
 
   --variant contrastive
     Stage 3a: Contrastive MLP encoder (d → 512 → 128, CPU ~10 min)
     Stage 3b: XGBoost on 128-dim embeddings + 5 scalars (133 features, CPU ~2 min)
-    Saves: models/<model_name>/encoder.pt
-           models/<model_name>/xgb_contrastive.json
-           models/<model_name>/scaler_contrastive.pkl
+    Saves: probes/<model_name>/encoder.pt
+           probes/<model_name>/xgb_contrastive.json
+           probes/<model_name>/scaler_contrastive.pkl
 """
 import argparse
 import glob
@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
     d = MODEL_D[args.model]
     act_dir   = f"data/activations/{args.model}"
-    model_dir = f"models/{args.model}"
+    model_dir = f"probes/{args.model}"
     os.makedirs(model_dir, exist_ok=True)
 
     train_files = glob.glob(f"{act_dir}/train_*.npz")

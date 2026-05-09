@@ -10,10 +10,6 @@
 | Llama 3.1 70B-IT | 70B | ~140 GB | **2×H100 80 GB** |
 | Qwen3-235B-A22B *(data gen only)* | 235B MoE | ~240 GB (fp8) | **2×H200** |
 
-Probe training and all evaluation run on **CPU only** once activations are cached.
-The paper used [RunPod](https://runpod.io) H200 SXM pods. An A100 80 GB or H200 pod covers Gemma/Mistral/Qwen extraction; rent a 2×H100 pod for Llama; rent a 2×H200 pod for synthetic data generation. Storage budget: ~70 GB per 27–32B model, ~140 GB for Llama 70B.
-Download models to an NVMe volume attached to your cloud instance to avoid re-downloading.
-
 ## Software
 
 - [Python 3.10+](https://www.python.org/downloads/)

@@ -18,7 +18,10 @@ Usage:
 """
 import argparse
 import glob
+import os
 import pickle
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np
 import torch
 import xgboost as xgb
@@ -76,7 +79,7 @@ if __name__ == "__main__":
 
     d         = MODEL_D[MODEL_NAME]
     act_dir   = f"data/activations/{MODEL_NAME}"
-    model_dir = f"models/{MODEL_NAME}"
+    model_dir = f"probes/{MODEL_NAME}"
 
     eval_files = glob.glob(f"{act_dir}/eval_*.npz")
     X_eval, y_eval, conv_ids = load_npz(eval_files)

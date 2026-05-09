@@ -100,7 +100,7 @@ def early_detection_by_pivot_length(y, conv_ids, probs, max_bucket=4):
 def eval_probe(model_name, variant="standard"):
     d = MODEL_D[model_name]
     act_dir   = f"data/activations/{model_name}"
-    model_dir = f"models/{model_name}"
+    model_dir = f"probes/{model_name}"
 
     clf = xgb.XGBClassifier()
     if variant == "standard":

@@ -35,16 +35,3 @@ Expected: ~85–90% detection, high FPR due to the small 50-conversation trainin
 set. This validates that *adversarial restlessness* is detectable even on a 1.5B
 model; it is not representative of the paper's results (2,625 conversations,
 24–70B models, 2–4% FPR).
-
-## A100 80 GB — closer to paper conditions
-
-Uses the included starter dataset with Qwen 2.5 32B. Same commands as above but
-substitute `--model qwen` (and download `Qwen/Qwen2.5-32B-Instruct` in Phase 2).
-Takes ~30 minutes end-to-end. To generate a larger dataset instead of using the
-included one, see [Phase 3](pipeline.md#phase-3--synthetic-dataset-generation-2-4-h-2h200).
-
-Expected on 50-conversation smoke test: ~89% detection rate but high FPR (~57–74%)
-due to limited training data. With the full dataset (2,625 conversations) and
-`--variant contrastive`, FPR drops to 2–4% while detection stays at 85–89% (paper
-Sections 6–7). The scalar-only ablation (Section 5) also achieves ~89.6% detection
-but retains the high 57–74% FPR regardless of dataset size.

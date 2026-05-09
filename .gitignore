@@ -17,6 +17,7 @@ data/synthetic_extended/
 
 # Trained model artefacts — large, reproducible via train_probe.py
 models/
+probes/
 
 # uv lock file — pin for reproducibility; keep in repo
 # uv.lock

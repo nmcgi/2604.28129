@@ -72,15 +72,15 @@ if __name__ == "__main__":
     clf = xgb.XGBClassifier()
     if args.variant == "contrastive":
         enc = ContrastiveEncoder(d_in=d)
-        enc.load_state_dict(torch.load(f"models/{args.model}/encoder.pt", map_location="cpu"))
+        enc.load_state_dict(torch.load(f"probes/{args.model}/encoder.pt", map_location="cpu"))
         enc.eval()
-        clf.load_model(f"models/{args.model}/xgb_contrastive.json")
-        with open(f"models/{args.model}/scaler_contrastive.pkl", "rb") as f:
+        clf.load_model(f"probes/{args.model}/xgb_contrastive.json")
+        with open(f"probes/{args.model}/scaler_contrastive.pkl", "rb") as f:
             scaler = pickle.load(f)
     else:
         enc = None
-        clf.load_model(f"models/{args.model}/xgb.json")
-        with open(f"models/{args.model}/scaler.pkl", "rb") as f:
+        clf.load_model(f"probes/{args.model}/xgb.json")
+        with open(f"probes/{args.model}/scaler.pkl", "rb") as f:
             scaler = pickle.load(f)
 
     hook_out = []

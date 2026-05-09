@@ -10,6 +10,9 @@ Usage:
   python eval_cross_model_transfer.py
 """
 import glob
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler
 import xgboost as xgb

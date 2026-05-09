@@ -20,7 +20,10 @@ Usage:
 """
 import argparse
 import glob
+import os
 import pickle
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np
 import xgboost as xgb
 from train_probe import MODEL_D, load_npz
@@ -72,7 +75,7 @@ if __name__ == "__main__":
 
     d         = MODEL_D[args.model]
     act_dir   = f"data/activations/{args.model}"
-    model_dir = f"models/{args.model}"
+    model_dir = f"probes/{args.model}"
 
     eval_files = glob.glob(f"{act_dir}/eval_*.npz")
     X_eval, y_eval, conv_ids = load_npz(eval_files)
