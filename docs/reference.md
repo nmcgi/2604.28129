@@ -51,7 +51,8 @@ Total CPU-hours: ~1 h training + evaluation.
 ├── train_probe.py             — contrastive encoder + XGBoost probe (Phase 5)
 ├── eval_probe.py              — held-out evaluation + early detection (Phase 6)
 ├── lad_infer.py               — real-time inference demo (Phase 7)
-├── ablations/                 — component-removal experiments
+├── ablations/                 — component-removal experiments ([README](../ablations/README.md))
+│   ├── README.md                           — script overview + usage
 │   ├── ablation_adversarial_robustness.py  — α-sweep drift suppression (Appendix M)
 │   ├── ablation_feature.py                 — per-scalar leave-one-out (§7.3 #3 / Fig 8)
 │   ├── ablation_label.py                   — three-phase vs binary labels (Table 11)
@@ -59,7 +60,8 @@ Total CPU-hours: ~1 h training + evaluation.
 │   ├── ablation_loso.py                    — leave-one-source-out (Table 10)
 │   ├── ablation_sae.py                     — GemmaScope SAE ablation (Appendix O)
 │   └── ablation_six_feature.py             — 5- vs 6-feature variant (§3.3 / §5.1)
-├── evals/                     — measurement / comparison experiments
+├── evals/                     — measurement / comparison experiments ([README](../evals/README.md))
+│   ├── README.md                           — script overview + usage
 │   ├── eval_baselines.py                   — PromptGuard / LLM Guard / Lakera (Table 9)
 │   ├── eval_baselines_text.py              — TF-IDF / cumdrift threshold (Table 9)
 │   ├── eval_cross_model_transfer.py        — cross-model F1 matrix (Appendix F)
