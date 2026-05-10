@@ -84,10 +84,20 @@ def label_turn_threephase(messages_context: list, content: str) -> str:
     return raw if raw in ("benign", "pivoting", "adversarial") else "adversarial"
 
 
-def convert_conv(record, label_mode: str) -> dict | None:
-    """Convert one SafeDialBench record to our JSON schema."""
+def convert_conv(record, label_mode: str, strict_strategy: bool = True) -> dict | None:
+    """Convert one SafeDialBench record to our JSON schema.
+
+    With strict_strategy=True (default), records whose attack_strategy is not in
+    the canonical 7-item ATTACK_STRATEGIES list are rejected -- this enforces the
+    paper's "7 attack strategies" claim and prevents stray records from drifting
+    into evaluation under category='unknown'.
+    """
     turns = record.get("conversation") or record.get("dialogue") or []
     if not turns:
+        return None
+
+    category = record.get("attack_strategy", record.get("strategy", "unknown"))
+    if strict_strategy and category not in ATTACK_STRATEGIES:
         return None
 
     messages = []
@@ -106,7 +116,6 @@ def convert_conv(record, label_mode: str) -> dict | None:
             label = "benign"
         messages.append({"role": role, "content": content, "label": label})
 
-    category = record.get("attack_strategy", record.get("strategy", "unknown"))
     return {"messages": messages, "category": category}
 
 
@@ -120,6 +129,10 @@ if __name__ == "__main__":
                     help="threephase (default): gpt-4o-mini assigns benign/pivoting/adversarial "
                          "per user turn using conversation context. all_adversarial: label every "
                          "user turn as adversarial (fast but discards pivoting-phase structure).")
+    ap.add_argument("--allow-unknown-strategy", action="store_true",
+                    help="Skip the ATTACK_STRATEGIES filter -- accept records whose "
+                         "attack_strategy is missing or not in the canonical 7-item list. "
+                         "Default is strict (matches paper's 7-strategy claim).")
     args = ap.parse_args()
 
     rng = random.Random(args.seed)
@@ -140,7 +153,8 @@ if __name__ == "__main__":
             break
 
         record = ds[idx]
-        conv = convert_conv(record, args.label_mode)
+        conv = convert_conv(record, args.label_mode,
+                            strict_strategy=not args.allow_unknown_strategy)
         if conv is None:
             continue
 

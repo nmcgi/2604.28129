@@ -1,5 +1,5 @@
 """
-eval_adversarial_robustness.py
+ablation_adversarial_robustness.py
 Adversarial robustness simulation (Section M / Appendix M, eq. 5).
 
 Simulates a probe-aware attacker who suppresses activation drift by interpolating
@@ -16,7 +16,7 @@ For each attacker model, sweeps α ∈ {0, 0.1, ..., 1.0} and reports conversati
 detection rate. The "break point" is the smallest α where detection drops below 50%.
 
 Usage:
-  python eval_adversarial_robustness.py --model qwen [--variant standard]
+  python ablation_adversarial_robustness.py --model qwen [--variant standard]
 """
 import argparse
 import glob

@@ -1,5 +1,5 @@
 """
-eval_layer_sensitivity.py
+ablation_layer_sensitivity.py
 Layer sensitivity sweep (Appendix G).
 
 Re-extracts activations from every decoder layer (or a sampled subset) for one
@@ -9,7 +9,7 @@ Confirms that the trajectory-scalar signal is not layer-specific (<1.2 pp spread
 Because extracting all layers is expensive, use --step to sample every Nth layer.
 
 Usage:
-  python eval_layer_sensitivity.py --model gemma [--step 4] [--n-convs 100]
+  python ablation_layer_sensitivity.py --model gemma [--step 4] [--n-convs 100]
 """
 import argparse
 import json
@@ -55,7 +55,8 @@ def extract_one_layer(conv_json, model, tok, layer_idx):
             continue
 
         ctx = tok.apply_chat_template(msgs_so_far, tokenize=False, add_generation_prompt=False)
-        ids = tok(ctx, return_tensors="pt").input_ids.to(model.device)
+        ids = tok(ctx, return_tensors="pt",
+                  truncation=True, max_length=4096).input_ids.to(model.device)
         with torch.no_grad():
             _ = model(ids)
 

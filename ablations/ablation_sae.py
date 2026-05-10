@@ -1,5 +1,5 @@
 """
-eval_sae_ablation.py
+ablation_sae.py
 GemmaScope 2 SAE feature ablation (Appendix O).
 
 Loads GemmaScope 2 (layer 32, 65k width) SAE, identifies the top-K SAE latents
@@ -14,7 +14,7 @@ Requires:
   GemmaScope 2 SAE checkpoint: google/gemma-scope-27b-pt-res (layer 32, width 65k)
 
 Usage:
-  python eval_sae_ablation.py [--k 10 50 100 200 500 1000]
+  python ablation_sae.py [--k 10 50 100 200 500 1000]
 """
 import argparse
 import glob

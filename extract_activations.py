@@ -74,7 +74,9 @@ def extract_conv(conv_json, model, tok, layer_idx):
 
             # Cumulative context: all messages up to this user turn (Algorithm 3)
             ctx = tok.apply_chat_template(msgs_so_far, tokenize=False, add_generation_prompt=False)
-            ids = tok(ctx, return_tensors="pt").input_ids.to(model.device)
+            # 4,096-token truncation enforces the length confound control (Section 5.1).
+            ids = tok(ctx, return_tensors="pt",
+                      truncation=True, max_length=4096).input_ids.to(model.device)
 
             with torch.no_grad():
                 _ = model(ids)
@@ -134,7 +136,7 @@ if __name__ == "__main__":
     files    = sorted(glob.glob(f"{data_dir}/conv_*.json"))
     print(f"Processing {len(files)} conversations from {data_dir}")
 
-    all_X, all_y, all_ids = [], [], []
+    all_X, all_y, all_ids, all_sources = [], [], [], []
     for f in (outer := tqdm(files, desc="convs", unit="conv")):
         outer.set_postfix(file=os.path.basename(f))
         conv = json.load(open(f))
@@ -144,6 +146,7 @@ if __name__ == "__main__":
             all_y.append(y)
             conv_id = int(os.path.basename(f).split("_")[1].split(".")[0])
             all_ids.extend([conv_id] * len(y))
+            all_sources.extend([args.source] * len(y))
 
     out_dir = f"data/activations/{args.model}"
     os.makedirs(out_dir, exist_ok=True)
@@ -154,5 +157,6 @@ if __name__ == "__main__":
     np.savez_compressed(out_path,
                         X=np.vstack(all_X),
                         y=np.concatenate(all_y),
-                        conv_ids=np.array(all_ids))
+                        conv_ids=np.array(all_ids),
+                        sources=np.array(all_sources))
     print(f"Saved {out_path}  ({np.vstack(all_X).shape})")

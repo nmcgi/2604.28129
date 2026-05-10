@@ -34,7 +34,14 @@ if __name__ == "__main__":
     ap.add_argument("--variant",  default="standard", choices=["standard", "contrastive"])
     ap.add_argument("--quantize", action="store_true",
                     help="Load target model in 4-bit (bitsandbytes). Use for llama3b/gemma2b/phi3.5.")
+    ap.add_argument("--log", default=None,
+                    help="Append per-turn predictions as JSONL to this file. "
+                         "Consumed by deploy/monitor.py for sliding-window FP "
+                         "tracking and retrain triggers.")
+    ap.add_argument("--conv-id", default="demo",
+                    help="Conversation identifier written into --log records.")
     args = ap.parse_args()
+    log_fh = open(args.log, "a") if args.log else None
 
     d   = MODEL_D[args.model]
     cfg = {
@@ -98,7 +105,8 @@ if __name__ == "__main__":
 
         t0  = time.perf_counter()
         ctx = tok.apply_chat_template(msgs_so_far, tokenize=False, add_generation_prompt=False)
-        ids = tok(ctx, return_tensors="pt").input_ids.to(target_model.device)
+        ids = tok(ctx, return_tensors="pt",
+                  truncation=True, max_length=4096).input_ids.to(target_model.device)
         with torch.no_grad():
             _ = target_model(ids)
 
@@ -128,5 +136,20 @@ if __name__ == "__main__":
         print(f"Turn {turn_idx+1:2d} [{msg['role']:9s}]  P(adv)={prob:.3f}  ({ms:.0f} ms){flag}")
         print(f"  \"{msg['content'][:80]}…\"")
 
+        if log_fh is not None:
+            import json as _json, time as _time
+            log_fh.write(_json.dumps({
+                "ts":        _time.time(),
+                "conv_id":   args.conv_id,
+                "turn":      turn_idx,
+                "p_adv":     float(prob),
+                "flagged":   bool(prob > THETA),
+                "cum_drift": float(scalars[2]),
+                "model":     args.model,
+            }) + "\n")
+            log_fh.flush()
+
     handle.remove()
+    if log_fh is not None:
+        log_fh.close()
     print("\nDone.")
