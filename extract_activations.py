@@ -19,14 +19,14 @@ MODEL_CFG = {
     "mistral": {"path": "models/mistral-24b-it",  "layer": 24, "d": 5120},
     "qwen":    {"path": "models/qwen-32b-it",     "layer": 32, "d": 5120},
     "llama":   {"path": "models/llama-70b-it",    "layer": 40, "d": 8192},
-    # --- Small models (GTX 1650 / 4 GB VRAM) ---
+    # --- Small models (4 GB VRAM) ---
     # bfloat16: qwen1.5b (~3 GB), llama1b (~2 GB) fit without quantization.
     # Use --quantize for gemma2b (~2 GB q4), llama3b (~2 GB q4), phi3.5 (~2 GB q4).
-    "qwen1.5b": {"path": "Qwen/Qwen2.5-1.5B-Instruct",      "layer": 14, "d": 1536},
-    "llama1b":  {"path": "meta-llama/Llama-3.2-1B-Instruct", "layer":  8, "d": 2048},
-    "llama3b":  {"path": "meta-llama/Llama-3.2-3B-Instruct", "layer": 14, "d": 3072},
-    "gemma2b":  {"path": "google/gemma-2-2b-it",             "layer": 13, "d": 2304},
-    "phi3.5":   {"path": "microsoft/Phi-3.5-mini-instruct",  "layer": 16, "d": 3072},
+    "qwen1.5b": {"path": "models/qwen-1.5b-it",  "layer": 14, "d": 1536},
+    "llama1b":  {"path": "models/llama-1b-it",   "layer":  8, "d": 2048},
+    "llama3b":  {"path": "models/llama-3b-it",   "layer": 14, "d": 3072},
+    "gemma2b":  {"path": "models/gemma-2b-it",   "layer": 13, "d": 2304},
+    "phi3.5":   {"path": "models/phi-3.5-mini",  "layer": 16, "d": 3072},
 }
 
 def load_model(cfg, quantize=False):

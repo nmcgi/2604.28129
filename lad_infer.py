@@ -50,12 +50,12 @@ if __name__ == "__main__":
         "mistral":  "models/mistral-24b-it",
         "qwen":     "models/qwen-32b-it",
         "llama":    "models/llama-70b-it",
-        # Small models (GTX 1650 / 4 GB VRAM)
-        "qwen1.5b": "Qwen/Qwen2.5-1.5B-Instruct",
-        "llama1b":  "meta-llama/Llama-3.2-1B-Instruct",
-        "llama3b":  "meta-llama/Llama-3.2-3B-Instruct",
-        "gemma2b":  "google/gemma-2-2b-it",
-        "phi3.5":   "microsoft/Phi-3.5-mini-instruct",
+        # Small models (4 GB VRAM)
+        "qwen1.5b": "models/qwen-1.5b-it",
+        "llama1b":  "models/llama-1b-it",
+        "llama3b":  "models/llama-3b-it",
+        "gemma2b":  "models/gemma-2b-it",
+        "phi3.5":   "models/phi-3.5-mini",
     }
     layer = {
         "gemma": 32, "mistral": 24, "qwen": 32, "llama": 40,
